@@ -70,201 +70,140 @@ aligned buffers and call \tcode{construct} to place the element into the buffer.
 \end{note}
 
 \pnum
-In Tables~\ref{tab:containers.container.requirements},
-\ref{tab:containers.reversible.requirements}, and
-\ref{tab:containers.optional.operations}
-\tcode{X} denotes a container class containing objects of type
-\tcode{T}, \tcode{a} and \tcode{b}
-denote values of type \tcode{X}, \tcode{u}
-denotes an identifier, \tcode{r} denotes
-a non-const value of type \tcode{X}, and \tcode{rv}
-denotes a non-const rvalue of type \tcode{X}.
+Given a container type \tcode{X} having an \tcode{allocator_type}
+identical to \tcode{A} and a
+\tcode{value_type} identical to \tcode{T} and given
+an lvalue \tcode{m} of type \tcode{A}, a
+pointer \tcode{p} of type \tcode{T*},
+an expression \tcode{v} of type (possibly const) \tcode{T}, and
+an rvalue \tcode{rv} of type
+\tcode{T}, the following terms are defined. If \tcode{X}
+is not allocator-aware, the terms below are defined as if \tcode{A} were
+\tcode{std::allocator<T>} --- no allocator object needs to be created
+and user specializations of \tcode{std::allocator<T>} are not instantiated:
 
-\begin{libreqtab5}
-{Container requirements}
-{tab:containers.container.requirements}
-\\ \topline
-\lhdr{Expression}       &   \chdr{Return type}  &   \chdr{Operational}  &
-\chdr{Assertion/note}   &   \rhdr{Complexity}   \\
-    &   &   \chdr{semantics}    &   \chdr{pre-/post-condition}   &      \\ \capsep
-\endfirsthead
-\continuedcaption\\
-\topline
-\lhdr{Expression}       &   \chdr{Return type}  &   \chdr{Operational}  &
-\chdr{Assertion/note}   &   \rhdr{Complexity}   \\
-    &   &   \chdr{semantics}    &   \chdr{pre-/post-condition}   &      \\ \capsep
-\endhead
+\begin{itemize}
+\item
+\tcode{T} is \defnx{\tcode{DefaultInsertable} into \tcode{X}}
+{DefaultInsertable into X@\tcode{DefaultInsertable} into \tcode{X}}
+means that the following expression is well-formed:
+\begin{codeblock}
+allocator_traits<A>::construct(m, p)
+\end{codeblock}
 
-\tcode{X::value_type}       &
- \tcode{T}                  &
-                            &
- \requires\ \tcode{T} is \tcode{Erasable} from \tcode{X} (see~\ref{container.requirements.general}, below) &
- compile time               \\ \rowsep
+\item
+An element of \tcode{X} is \defn{default-inserted} if it is initialized
+by evaluation of the expression
+\begin{codeblock}
+allocator_traits<A>::construct(m, p)
+\end{codeblock}
+where \tcode{p} is the address of the uninitialized storage for the element
+allocated within \tcode{X}.
+	
+\item
+\tcode{T} is \defnx{\tcode{MoveInsertable} into \tcode{X}}
+{MoveInsertable into X@\tcode{MoveInsertable} into \tcode{X}}
+means that the following expression
+is well-formed:
+\begin{codeblock}
+allocator_traits<A>::construct(m, p, rv)
+\end{codeblock}
+and its evaluation causes the following postcondition to hold: The value
+of \tcode{*p} is equivalent to the value of \tcode{rv} before the evaluation.
+\begin{note} \tcode{rv} remains a valid object. Its state is unspecified.\end{note}
 
-\tcode{X::reference}        &
- \tcode{T\&}                &
-                            &
-                            &
- compile time               \\ \rowsep
+\item
+\tcode{T} is \defnx{\tcode{CopyInsertable} into \tcode{X}}
+{CopyInsertable into X@\tcode{CopyInsertable} into \tcode{X}}
+means that, in addition to \tcode{T} being \tcode{MoveInsertable} into
+\tcode{X}, the following expression is well-formed:
+\begin{codeblock}
+allocator_traits<A>::construct(m, p, v)
+\end{codeblock}
+and its evaluation causes the following postcondition to hold:
+The value of \tcode{v} is unchanged and is equivalent to \tcode{*p}.
 
-\tcode{X::const_reference} &
- \tcode{const T\&}          &
-                            &
-                            &
- compile time               \\ \rowsep
+\item
+\tcode{T} is
+\defnx{\tcode{EmplaceConstructible} into \tcode{X} from \tcode{args}}
+{EmplaceConstructible into X from args@\tcode{EmplaceConstructible} into \tcode{X} from \tcode{args}},
+for zero
+or more arguments \tcode{args}, means that the following expression is well-formed:
+\begin{codeblock}
+allocator_traits<A>::construct(m, p, args)
+\end{codeblock}
 
-\tcode{X::iterator}         &
- iterator type whose value type is \tcode{T} &
-                            &
- any iterator category
- that meets the forward iterator requirements.
- convertible to \tcode{X::const_iterator}. &
- compile time               \\ \rowsep
+\item
+\tcode{T} is
+\defnx{\tcode{Erasable} from \tcode{X}}
+{Erasable from X@\tcode{Erasable} from \tcode{X}}
+means that the following expression is well-formed:
+\begin{codeblock}
+allocator_traits<A>::destroy(m, p)
+\end{codeblock}
+\end{itemize}
 
-\tcode{X::const_iterator}  &
- constant iterator type whose value type is \tcode{T} &
-                            &
- any iterator category
- that meets the forward iterator requirements. &
- compile time               \\ \rowsep
+\begin{note}
+A container calls \tcode{allocator_traits<A>::construct(m, p, args)} to construct an element
+at \tcode{p} using \tcode{args}. The default \tcode{construct} in \tcode{std::allocator} calls
+\begin{codeblock}
+::new(static_cast<void*>(p) T(std::forward(args)...) @{\normalfont\ ,}@
+\end{codeblock}
+but specialized allocators may choose a different definition.
+\end{note}
 
-\tcode{X::dif\-ference_type}    &
- signed integer type           &
-                                &
- is identical to the difference type of \tcode{X::iterator} and \tcode{X::const_iterator} &
- compile time               \\ \rowsep
+\pnum
+The remainder of this section describes requirements on container classes.
+In the context of these requirements, descriptive identifiers are used with
+the semantics described by Table~\ref{tab:containers.container.iddef}.
+Each requirement is described as a primary lexical fragment followed by additional
+constraints. A container class meets the general container requirements if each of
+the lexical fragments is well-formed and satisfies the constraints.
 
-\tcode{X::size_type}        &
- unsigned integer type     &
-                            &
- \tcode{size_type} can represent any non-negative value of \tcode{difference_type} &
- compile time                \\ \rowsep
+\begin{itemize}
+\item
+\tcode{X::const_iterator} shall denote a type, and the type shall be a constant iterator type
+that meets the forward iterator requirements, and whose value type is \tcode{T}.
 
-\tcode{X u;}                &
-                            &
-                            &
- \postconditions \tcode{u.empty()}    &
- constant                   \\ \rowsep
+\item
+\tcode{X::difference_type} shall denote a type, and the type shall be a signed integer type
+that is identical to the difference type of \tcode{X::iterator} and \tcode{X::const_iterator}.
 
-\tcode{X()}                 &
-                            &
-                            &
- \postconditions \tcode{X().empty()}  &
- constant                   \\ \rowsep
+\item
+\tcode{X::size_type} shall denote a type, and the type shall be an unsigned integer type that
+can represent any non-negative value of \tcode{difference_type}.
 
-\tcode{X(a)}                &
-                            &
-                            &
- \requires \tcode{T} is \tcode{CopyInsertable}
- into \tcode{X} (see below).\br \postconditions \tcode{a == X(a)}.         &
- linear                     \\ \rowsep
+\item
+\tcode{X u;} shall be a declaration statement.
 
-\tcode{X u(a);}\br
-\tcode{X u = a;}            &
-                            &
-                            &
- \requires \tcode{T} is \tcode{CopyInsertable}
- into \tcode{X} (see below).\br
- \postconditions \tcode{u == a}       &
- linear                     \\ \rowsep
+\item
+\tcode{X u(a);} and \tcode{X u = a;} shall be declaration statements.
 
-\tcode{X u(rv);}\br
-\tcode{X u = rv;}            &
-                            &
-                            &
-  \postconditions \tcode{u} shall be equal to the value that \tcode{rv} had before this construction
-                            &
-  (Note B)                  \\ \rowsep
+\requires \tcode{T} is \tcode{CopyInsertable} into \tcode{X}.
 
-\tcode{a = rv}              &
-  \tcode{X\&}               &
-  All existing elements of \tcode{a} are either move assigned to or destroyed   &
-  \tcode{a} shall be equal to the value that \tcode{rv}
-  had before this assignment   &
-   linear                     \\ \rowsep
+\postconditions \tcode{u == a} shall be true.
 
-\tcode{(\&a)->\~X()}    &
- \tcode{void}               &
-                            &
- the destructor is applied to every element of \tcode{a}; any memory obtained is deallocated. &
- linear                     \\ \rowsep
+\complexity Linear in \tcode{a.size()}.
 
-\tcode{a.begin()}           &
- \tcode{iterator}; \tcode{const_iterator} for constant \tcode{a} &
-                            &
-                            &
- constant                   \\ \rowsep
+\item
+\tcode{X u(rv)} and \tcode{X u = rv} shall be declaration statements.
 
-\tcode{a.end()}             &
- \tcode{iterator}; \tcode{const_iterator} for constant \tcode{a} &
-                            &
-                            &
- constant                   \\ \rowsep
+\postconditions \tcode{u} shall be equal to the value that \tcode{rv} had before this construction.
 
-\tcode{a.cbegin()}          &
- \tcode{const_iterator}     &
- \tcode{const_cast<\brk{}X const\&\brk{}>(a)\brk{}.begin();} &
-                            &
- constant                   \\ \rowsep
+\complexity Linear in \tcode{a.size()} when \tcode{X} is is a specialization of \tcode{array}, otherwise constant.
 
-\tcode{a.cend()}            &
- \tcode{const_iterator}     &
- \tcode{const_cast<\brk{}X const\&\brk{}>(a)\brk{}.end();} &
-                            &
- constant                   \\ \rowsep
+\item
+\tcode{v = a} shall denote an expression, and the expression shall be an lvalue of type \tcode{X}.
 
-\tcode{a == b}                  &
- convertible to \tcode{bool}    &
- \tcode{==} is an equivalence relation.
- \tcode{equal(\brk{}a.begin(), a.end(), b.begin(), b.end())} &
- \requires\ \tcode{T} is \tcode{EqualityCompar\-a\-ble} &
- Constant if \tcode{a.size() != b.size()},
- linear otherwise                                   \\ \rowsep
+\postconditions \tcode{v == a} shall be true.
 
-\tcode{a != b}                      &
- convertible to \tcode{bool}        &
- Equivalent to \tcode{!(a == b)}   &
-                                    &
- linear                             \\ \rowsep
+\complexity Linear in \tcode{v.size()}.
 
-\tcode{a.swap(b)}          &
- \tcode{void}               &
-                            &
- exchanges the contents of \tcode{a} and \tcode{b}          &
- (Note A)                   \\ \rowsep
+\item
+\tcode{v = rv} shall denote an expression, and the expression shall be an lvalue of type \tcode{X}.
 
-\tcode{swap(a, b)}          &
-  \tcode{void}              &
-  Equivalent to \tcode{a.swap(b)}         &
-                            &
-  (Note A)                  \\ \rowsep
-
-\tcode{r = a}               &
- \tcode{X\&}                &
-                            &
- \postconditions \tcode{r == a}.      &
- linear                     \\ \rowsep
-
-\tcode{a.size()}                &
- \tcode{size_type}             &
- \tcode{distance(\brk{}a.begin(), a.end())}  &
-                                &
- constant                       \\ \rowsep
-
-\tcode{a.max_size()}        &
- \tcode{size_type}         &
- \tcode{distance(\brk{}begin(), end())}
- for the largest possible container &
-                            &
- constant                   \\ \rowsep
-
-\tcode{a.empty()}               &
- convertible to \tcode{bool}    &
- \tcode{a.begin() == a.end()}          &
-                                &
-constant                        \\
-
-\end{libreqtab5}
+\remarks All existing elements of \tcode{v} are either move-assigned to or destroyed.
+\end{itemize}
 
 Those entries marked ``(Note A)'' or ``(Note B)''
 have linear complexity for \tcode{array} and have constant complexity
