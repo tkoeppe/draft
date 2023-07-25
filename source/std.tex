@@ -32,6 +32,8 @@
 \setsansfont{NewComputerModern Sans 10}
 \setmonofont{NewComputerModern Mono 10}
 \setmathfont{NewComputerModernMath}
+\newfontfamily\notoemoji{Noto Color Emoji}[Renderer=HarfBuzz]
+\newcommand{\emo}[1]{{\notoemoji\raisebox{1pt}{\scriptsize #1}}}
 
 \usepackage{xcolor}
 \usepackage[luatex, final]{graphicx}

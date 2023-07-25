@@ -1,5 +1,4 @@
 FIGURES=$(patsubst %.dot,%.pdf,$(wildcard assets/*.dot))
-EXAMPLES=$(patsubst %.tex,%.pdf,$(wildcard assets/*.tex))
 
 default: full
 
@@ -22,11 +21,3 @@ clean-figures:
 	rm -f $(FIGURES)
 
 figures: $(FIGURES)
-
-%.pdf: %.tex
-	lualatex -output-directory assets $<
-
-clean-examples:
-	rm -f $(EXAMPLES)
-
-examples: $(EXAMPLES)
